@@ -50,6 +50,7 @@
             z-index: 100;
             padding: 5px;
             width: 70px;
+            color: #990000;
         }
 
         #zip-input-container {
@@ -62,7 +63,7 @@
         #zip-input-container input {
             font-size: 24px;
             font-weight: bold;
-            width: 80px;
+            width: 81px;
             margin: 0px;
             border: none;
             outline: none;
@@ -97,7 +98,7 @@
                 <canvas id="canvas_element" width="800" height="400"></canvas>
             </div>
             <div id="zip-error-underlay"></div>
-            <div id="zip-input-container"><input id="zip-input"/></div>
+            <div id="zip-input-container"><input id="zip-input" maxlength="5" /></div>
             <div id="zip-city-output"></div>
             <div id="loading">Loading zip codes...</div>
         </div>
@@ -146,7 +147,7 @@
         zip_results = zipdb;
         $("#zip-input-container").fadeIn();
         $("#loading").fadeOut(function () {
-            parse_results();
+            prepare_results();
         });
     });
     
@@ -174,14 +175,22 @@
     $("#zip-input").keyup(function () {
         $("#zip-error-underlay").text("");
         $this = $(this);
-        context.clearRect(0, 0, canvas_width, canvas_height); // clear whole canvas
         var zip_input = $this.val();
-        console.log(zip_input);
+        
+        prepare_results(zip_input);
+    });
+    
+    function prepare_results(zip_input){
+        
+        zip_input = zip_input || "";
+        
+        context.clearRect(0, 0, canvas_width, canvas_height); // clear whole canvas        
         
         var ziphtml = "";
         var result_count = 0;
         var tmp_zip_results = [];
         var city_state = "";
+
 
 
         for (i in zipdb) {
@@ -220,10 +229,11 @@
             zip_results = tmp_zip_results; //so we don't accidentally render empty result sets (though this doesn't always catch it)
             parse_results();
         } else {
-            $this.val(zip_input.slice(0, -1))
+            $("#zip-input").val(zip_input.slice(0, -1))
             $("#zip-error-underlay").stop(true, true).text(zip_input).show().fadeOut(1500);
         }
-    });
+    }
+    
     function parse_results() {
         if (!busy) {
             busy = true;
