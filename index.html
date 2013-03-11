@@ -70,24 +70,54 @@
             top: 180px;
         }
     </style>
-    <!--zips: http://www.boutell.com/zipcodes/-->
 </head>
 <body>
-<div id="wrapper">
-    <div id=canvas-wrapper>
-        <canvas id="canvas_element" width="800" height="400"></canvas>
+    <div id="wrapper">
+        <div id=canvas-wrapper>
+            <canvas id="canvas_element" width="800" height="400"></canvas>
+        </div>
+        <div id="zip-error-underlay"></div>
+        <div id="zip-input-container"><input id="zip-input"/></div>
+        <div id="zip-output"></div>
+        <div id="zip-city-output"></div>
+        <div id="loading">Loading zip codes...</div>
     </div>
-    <div id="zip-error-underlay"></div>
-    <div id="zip-input-container"><input id="zip-input"/></div>
-    <div id="zip-output"></div>
-    <div id="zip-city-output"></div>
-    <div id="loading">Loading zip codes...</div>
-</div>
+    <div>
+        <h2>Zip Code Explorer</h2>
+        <h3>By <a title="Dan Pastusek" href="http://stuffbydan.com">Dan</a></h3>
+        <p>
+            Use this tool to visualize US zip codes. Start typing a zip code and and watch it zoom to your target.
+        </p>
+    </div>
+    <div id="sources-container">
+        <h2>Credit</h2>
+        <ul>
+            <li>Original Concept: <a href="http://benfry.com/zipdecode/">Ben Fry</a></li>
+            <li>Zip Code Database: <a href="http://www.boutell.com/zipcodes/">Tom Boutell</a></li>
+            <li>Source Code: <a href="https://github.com/pastudan/zipcode-explorer">GitHub</a></li>
+            <li>License: <a href="http://creativecommons.org/licenses/by-sa/2.0/">Creative Commons Share Alike</a></li>
+        </ul>
+    </div>
 </body>
 <script type="text/javascript">
 
+    //constants
+    var canvas_width = 800;
+    var canvas_height = 400;
+    var canvas_padding = .15; //padding in percentage
+    
+    //determine region for drawing selected ZIPs
+    var active_width = canvas_width - (2 * canvas_padding * canvas_width);
+    var active_height = canvas_height - (2 * canvas_padding * canvas_height);
 
+    //globals
     var zipdb;
+    var tmp_lats_max,
+        tmp_lats_min, 
+        tmp_longs_max, 
+        tmp_longs_min;
+    
+    //fetch the zip code database
     $.getJSON('zipcode-database.json', function (data) {
         zipdb = data;
         zip_results = zipdb;
@@ -96,18 +126,22 @@
             parse_results();
         });
     });
+    
+    //always keep focus on zip input field
     $("#zip-input").focus();
     $("body").click(function () {
         $("#zip-input").focus();
     });
 
-    //console.log(zipdb);
+
+    //
     var canvas = document.getElementById("canvas_element");
     var context = canvas.getContext("2d");
     context.fillStyle = "#009900";
     var $zipoutput = $("#zip-output");
     var zip_results = [];
-    var number_workers = 10; //how many times do you want the workers to execute (these aren't true HTML5 workers)
+    var number_workers = 10; 
+    //how many times do you want the workers to execute (these aren't true HTML5 workers)
     //number_workers is fun to play with .. the more workers, the more fluid the animation is, but also longer.
 
     var worker_interval = 0;
@@ -118,14 +152,14 @@
     $("#zip-input").keyup(function () {
         $("#zip-error-underlay").text("");
         $this = $(this);
-        context.clearRect(0, 0, 800, 400);
+        context.clearRect(0, 0, canvas_width, canvas_height); // clear whole canvas
         var zip_input = $this.val();
         console.log(zip_input);
+        
         var ziphtml = "";
         var result_count = 0;
         var tmp_zip_results = [];
         var city_state = "";
-
 
 
         for (i in zipdb) {
@@ -153,11 +187,12 @@
         tmp_longs_max = Math.max.apply(null, tmp_longs);
         tmp_longs_min = Math.min.apply(null, tmp_longs);
 
-
-        lat_delta = tmp_lats_max - tmp_lats_min;
-        long_delta = tmp_longs_max - tmp_longs_min;
-        console.log("Lat", tmp_lats_max, tmp_lats_min, "Delta:", lat_delta);
-        console.log("Long", tmp_longs_max, tmp_longs_min, "Delta:", long_delta);
+        lat_span  = tmp_lats_max  - tmp_lats_min;
+        long_span = tmp_longs_max - tmp_longs_min;
+        console.log("Lat", tmp_lats_max, tmp_lats_min,    "Span:", lat_span);
+        console.log("Long", tmp_longs_max, tmp_longs_min, "Span:", long_span);
+        
+        
         $("#zip-city-output").text(city_state);
         //$zipoutput.text(ziphtml);
         if (tmp_zip_results.length > 0) {
@@ -173,16 +208,23 @@
             busy = true;
             //do work
 
-            if (lat_delta < 78.5)
-                var scale = 78.5/lat_delta/250;
-            console.log(scale);
-
             for (var i = worker_interval; i < zip_results.length; i += number_workers) {
-                context.fillRect(scale * 6 * zip_results[i].longitude + 1100, -6 * zip_results[i].latitude + 450, 2, 2);
+                
+                if (lat_span > long_span){
+                    x_scale = (active_width / 2 / lat_span);
+                    y_scale = (active_height / lat_span);
+                } else {
+                    x_scale = (active_width / 2 / long_span);
+                    y_scale = (active_height / long_span);
+                }
+                
+                zip_results[i].x = x_scale * (zip_results[i].longitude - tmp_longs_min) + (canvas_padding * canvas_width);
+                zip_results[i].y = y_scale * (tmp_lats_max - zip_results[i].latitude) + (canvas_padding * canvas_height);
+                context.fillRect(zip_results[i].x, zip_results[i].y, 2, 2);
             }
             //end work
             busy = false;
-            // if we aren't done with the workers, wait 10ms and see if the function needs to run again
+            // if we aren't done with the workers, wait 1ms and see if the function needs to run again
             if (worker_interval < number_workers) {
                 worker_interval++;
                 setTimeout(function () {
