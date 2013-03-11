@@ -3,24 +3,29 @@
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <style>
         body {
-            background-color: tan;
+            background-color: #EEE;
             margin: 0;
             padding: 0;
             font-family: Courier;
             font-size: 24px;
             font-weight: bold;
-            color: #009900;
         }
 
+        #interface-wrapper{
+            color: #009900;
+        }
+        
         #canvas-wrapper {
             display: inline-block;
             background-color: #222222;
+            box-shadow: 10px 10px 5px #888;
         }
 
         #wrapper {
             position: relative;
             margin: 0 auto;
             width: 800px;
+            margin-top: 20px;
         }
 
         #zip-error-underlay {
@@ -29,7 +34,6 @@
             right: 20px;
             z-index: 100;
             padding: 5px;
-            color: #990000;
             width: 70px;
         }
 
@@ -73,30 +77,34 @@
 </head>
 <body>
     <div id="wrapper">
-        <div id=canvas-wrapper>
-            <canvas id="canvas_element" width="800" height="400"></canvas>
+        <div id="interface-wrapper">
+            <div id=canvas-wrapper>
+                <canvas id="canvas_element" width="800" height="400"></canvas>
+            </div>
+            <div id="zip-error-underlay"></div>
+            <div id="zip-input-container"><input id="zip-input"/></div>
+            <div id="zip-city-output"></div>
+            <div id="loading">Loading zip codes...</div>
         </div>
-        <div id="zip-error-underlay"></div>
-        <div id="zip-input-container"><input id="zip-input"/></div>
-        <div id="zip-output"></div>
-        <div id="zip-city-output"></div>
-        <div id="loading">Loading zip codes...</div>
-    </div>
-    <div>
-        <h2>Zip Code Explorer</h2>
-        <h3>By <a title="Dan Pastusek" href="http://stuffbydan.com">Dan</a></h3>
-        <p>
-            Use this tool to visualize US zip codes. Start typing a zip code and and watch it zoom to your target.
-        </p>
-    </div>
-    <div id="sources-container">
-        <h2>Credit</h2>
-        <ul>
-            <li>Original Concept: <a href="http://benfry.com/zipdecode/">Ben Fry</a></li>
-            <li>Zip Code Database: <a href="http://www.boutell.com/zipcodes/">Tom Boutell</a></li>
-            <li>Source Code: <a href="https://github.com/pastudan/zipcode-explorer">GitHub</a></li>
-            <li>License: <a href="http://creativecommons.org/licenses/by-sa/2.0/">Creative Commons Share Alike</a></li>
-        </ul>
+        
+        <div>
+            <h2>Zip Code Explorer</h2>
+            <h3>By <a title="Dan Pastusek" href="http://stuffbydan.com">Dan</a></h3>
+            <p>
+                Use this tool to visualize US zip codes. Start typing a zip code and and watch it zoom to your target.
+            </p>
+        </div>
+        
+        <div id="sources-container">
+            <h2>Credit</h2>
+            <ul>
+                <li>Original Concept: <a href="http://benfry.com/zipdecode/">Ben Fry</a></li>
+                <li>Zip Code Database: <a href="http://www.boutell.com/zipcodes/">Tom Boutell</a></li>
+                <li>Source Code: <a href="https://github.com/pastudan/zipcode-explorer">GitHub</a></li>
+                <li>License: <a href="http://creativecommons.org/licenses/by-sa/2.0/">Creative Commons Share Alike</a></li>
+            </ul>
+        </div>
+        
     </div>
 </body>
 <script type="text/javascript">
@@ -138,7 +146,6 @@
     var canvas = document.getElementById("canvas_element");
     var context = canvas.getContext("2d");
     context.fillStyle = "#009900";
-    var $zipoutput = $("#zip-output");
     var zip_results = [];
     var number_workers = 10; 
     //how many times do you want the workers to execute (these aren't true HTML5 workers)
@@ -194,7 +201,6 @@
         
         
         $("#zip-city-output").text(city_state);
-        //$zipoutput.text(ziphtml);
         if (tmp_zip_results.length > 0) {
             zip_results = tmp_zip_results; //so we don't accidentally render empty result sets (though this doesn't always catch it)
             parse_results();
@@ -210,7 +216,7 @@
 
             for (var i = worker_interval; i < zip_results.length; i += number_workers) {
                 
-                if (lat_span > long_span){
+                if (2* lat_span > long_span){
                     x_scale = (active_width / 2 / lat_span);
                     y_scale = (active_height / lat_span);
                 } else {
