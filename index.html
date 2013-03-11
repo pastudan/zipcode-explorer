@@ -1,159 +1,198 @@
 <html>
 <head>
-	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-	<style>
-		body{
-                    background-color: tan;
-                    margin: 0;
-                    padding: 0;
-                    font-family: Courier;
-                    font-size: 24px;
-                    font-weight: bold;
-                    color: #009900;
-		}
-		#canvas-wrapper{
-                    display: inline-block;
-                    background-color: #222222;
-		}
-                #wrapper{
-                    position: relative;
-                    margin: 0 auto;
-                    width: 800px;
-                }
-                #zip-error-underlay{
-                    position: absolute;
-                    top: 20px;
-                    right: 20px;
-                    z-index: 100;
-                    padding: 5px;
-                    color: #990000;
-                    width: 70px;
-                }
-                #zip-input-container{
-                    position: absolute;
-                    top: 20px;
-                    right: 20px;
-                    z-index: 200;
-                }
-                #zip-input-container input{
-                    font-size: 24px;
-                    font-weight: bold;
-                    width: 80px;
-                    margin: 0px;
-                    border: none;
-                    outline: none;
-                    padding: 5px;
-                    background: none;
-                    font-family: Courier;
-                    color: #009900;
-                }
-                #zip-input-container:before{
-                    content: ">";
-                    font-weight: bold;
-                }
-                #zip-city-output{
-                    position: absolute;
-                    left:20px;
-                    top:360px;
-                }
-                #loading{
-                    position: absolute;
-                    left: 280px;
-                    top: 180px;
-                }
-	</style>
-	<!--zips: http://www.boutell.com/zipcodes/-->
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <style>
+        body {
+            background-color: tan;
+            margin: 0;
+            padding: 0;
+            font-family: Courier;
+            font-size: 24px;
+            font-weight: bold;
+            color: #009900;
+        }
+
+        #canvas-wrapper {
+            display: inline-block;
+            background-color: #222222;
+        }
+
+        #wrapper {
+            position: relative;
+            margin: 0 auto;
+            width: 800px;
+        }
+
+        #zip-error-underlay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            padding: 5px;
+            color: #990000;
+            width: 70px;
+        }
+
+        #zip-input-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 200;
+        }
+
+        #zip-input-container input {
+            font-size: 24px;
+            font-weight: bold;
+            width: 80px;
+            margin: 0px;
+            border: none;
+            outline: none;
+            padding: 5px;
+            background: none;
+            font-family: Courier;
+            color: #009900;
+        }
+
+        #zip-input-container:before {
+            content: ">";
+            font-weight: bold;
+        }
+
+        #zip-city-output {
+            position: absolute;
+            left: 20px;
+            top: 360px;
+        }
+
+        #loading {
+            position: absolute;
+            left: 280px;
+            top: 180px;
+        }
+    </style>
+    <!--zips: http://www.boutell.com/zipcodes/-->
 </head>
 <body>
-    <div id="wrapper">
-        <div id=canvas-wrapper><canvas id="canvas_element" width="800" height="400"></canvas></div>
-        <div id="zip-error-underlay"></div>
-        <div id="zip-input-container"><input id="zip-input" /></div>
-	<div id="zip-output"></div>
-	<div id="zip-city-output"></div>
-        <div id="loading">Loading zip codes...</div>
+<div id="wrapper">
+    <div id=canvas-wrapper>
+        <canvas id="canvas_element" width="800" height="400"></canvas>
     </div>
+    <div id="zip-error-underlay"></div>
+    <div id="zip-input-container"><input id="zip-input"/></div>
+    <div id="zip-output"></div>
+    <div id="zip-city-output"></div>
+    <div id="loading">Loading zip codes...</div>
+</div>
 </body>
-	<script type="text/javascript">
-		var zipdb;
-		$.getJSON('zipcode-database.json', function(data) {
-			zipdb = data;
-                        zip_results = zipdb;
-                        $("#zip-input-container").fadeIn();
-                        $("#loading").fadeOut(function(){
-                           parse_results();
-                        });
-		});
-                $("#zip-input").focus();
-                $("body").click(function(){
-                    $("#zip-input").focus();
-                });
-		
-		//console.log(zipdb);
-		var canvas=document.getElementById("canvas_element");
-		var context=canvas.getContext("2d");
-		context.fillStyle="#009900";
-		var $zipoutput = $("#zip-output");
-		var zip_results = [];
-                var number_workers = 180; //how many times do you want the workers to execute (these aren't true HTML5 workers)
-                //number_workers is fun to play with .. the more workers, animation is longer, but more fluid.
-                var worker_interval = 0;
-                var busy = false;
-		$("#zip-input").keyup(function(){
-                        $("#zip-error-underlay").text("");
-                        $this = $(this);
-			context.clearRect(0,0,800,400);
-			var zip_input = $this.val();
-			console.log(zip_input);
-			var ziphtml = "";
-			var result_count = 0;
-			var tmp_zip_results = [];
-                        var zip_found = false;
-                        var city_state;
-			for (i in zipdb){
-				if (zipdb[i].zip.substring(0, zip_input.length) == zip_input){
-					ziphtml += zipdb[i].latitude+', '+zipdb[i].longitude;
-					tmp_zip_results[result_count] = zipdb[i];
-					result_count++;
-				}
-				if (zipdb[i].zip == zip_input){
-                                        city_state = zipdb[i].city+", "+zipdb[i].state;
-                                        zip_found = true;
-                                }
-                                if (!zip_found){
-                                        city_state = "";
-                                }
+<script type="text/javascript">
 
-			}
-			$("#zip-city-output").text(city_state);
-			//$zipoutput.text(ziphtml);
-                        if (tmp_zip_results.length>0){
-                            zip_results = tmp_zip_results; //so we dont accidentally render empty result sets (though this doesnt always catch it)
-                            parse_results();
-                        } else {
-                            $this.val(zip_input.slice(0,-1))
-                            $("#zip-error-underlay").stop(true, true).text(zip_input).show().fadeOut(1500);
-                        }
-		});
-                function parse_results(){
-                    if (!busy){
-                        busy = true;
-                        //do work
-                        for (var i=worker_interval; i<zip_results.length; i+=number_workers){
-                            context.fillRect(6*zip_results[i].longitude+1100,-6*zip_results[i].latitude+450,2,2);
-                        }
-                        //end work
-                        busy = false;
-                        // if we aren't done with the workers, wait 10ms and see if the function needs to run again
-                        if (worker_interval < number_workers){
-                            worker_interval++;
-                            setTimeout(function(){
-                                parse_results();
-                            }, 1); 
-                        } else {
-                            worker_interval = 0;
-                        }
-                    }
-                }
-	</script>
+
+    var zipdb;
+    $.getJSON('zipcode-database.json', function (data) {
+        zipdb = data;
+        zip_results = zipdb;
+        $("#zip-input-container").fadeIn();
+        $("#loading").fadeOut(function () {
+            parse_results();
+        });
+    });
+    $("#zip-input").focus();
+    $("body").click(function () {
+        $("#zip-input").focus();
+    });
+
+    //console.log(zipdb);
+    var canvas = document.getElementById("canvas_element");
+    var context = canvas.getContext("2d");
+    context.fillStyle = "#009900";
+    var $zipoutput = $("#zip-output");
+    var zip_results = [];
+    var number_workers = 10; //how many times do you want the workers to execute (these aren't true HTML5 workers)
+    //number_workers is fun to play with .. the more workers, the more fluid the animation is, but also longer.
+
+    var worker_interval = 0;
+    var busy = false;
+    var lat_delta, long_delta;
+
+
+    $("#zip-input").keyup(function () {
+        $("#zip-error-underlay").text("");
+        $this = $(this);
+        context.clearRect(0, 0, 800, 400);
+        var zip_input = $this.val();
+        console.log(zip_input);
+        var ziphtml = "";
+        var result_count = 0;
+        var tmp_zip_results = [];
+        var city_state = "";
+
+
+
+        for (i in zipdb) {
+            if (zipdb[i].zip.substring(0, zip_input.length) == zip_input) {
+                ziphtml += zipdb[i].latitude + ', ' + zipdb[i].longitude;
+                tmp_zip_results[result_count] = zipdb[i];
+                result_count++;
+            }
+            if (zipdb[i].zip == zip_input) {
+                city_state = zipdb[i].city + ", " + zipdb[i].state;
+            }
+
+        }
+
+
+        var tmp_lats = [];
+        var tmp_longs = [];
+        for (i in tmp_zip_results){
+            tmp_lats[i] = parseFloat(tmp_zip_results[i].latitude);
+            tmp_longs[i] = parseFloat(tmp_zip_results[i].longitude);
+        }
+
+        tmp_lats_max = Math.max.apply(null, tmp_lats);
+        tmp_lats_min = Math.min.apply(null, tmp_lats);
+        tmp_longs_max = Math.max.apply(null, tmp_longs);
+        tmp_longs_min = Math.min.apply(null, tmp_longs);
+
+
+        lat_delta = tmp_lats_max - tmp_lats_min;
+        long_delta = tmp_longs_max - tmp_longs_min;
+        console.log("Lat", tmp_lats_max, tmp_lats_min, "Delta:", lat_delta);
+        console.log("Long", tmp_longs_max, tmp_longs_min, "Delta:", long_delta);
+        $("#zip-city-output").text(city_state);
+        //$zipoutput.text(ziphtml);
+        if (tmp_zip_results.length > 0) {
+            zip_results = tmp_zip_results; //so we don't accidentally render empty result sets (though this doesn't always catch it)
+            parse_results();
+        } else {
+            $this.val(zip_input.slice(0, -1))
+            $("#zip-error-underlay").stop(true, true).text(zip_input).show().fadeOut(1500);
+        }
+    });
+    function parse_results() {
+        if (!busy) {
+            busy = true;
+            //do work
+
+            if (lat_delta < 78.5)
+                var scale = 78.5/lat_delta/250;
+            console.log(scale);
+
+            for (var i = worker_interval; i < zip_results.length; i += number_workers) {
+                context.fillRect(scale * 6 * zip_results[i].longitude + 1100, -6 * zip_results[i].latitude + 450, 2, 2);
+            }
+            //end work
+            busy = false;
+            // if we aren't done with the workers, wait 10ms and see if the function needs to run again
+            if (worker_interval < number_workers) {
+                worker_interval++;
+                setTimeout(function () {
+                    parse_results();
+                }, 1);
+            } else {
+                worker_interval = 0;
+            }
+        }
+    }
+
+</script>
 </html>
